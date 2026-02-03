@@ -38,13 +38,15 @@ class TurtleBot3Burger(Robot):
 
         """
         # TODO 2.1. Complete the function body with your code (i.e., replace the pass statement).
-        motor_handle = self._init_motors()
+        # motor_handle = self._init_motors()
 
         if (v / self.WHEEL_RADIUS) <= self.WHEEL_SPEED_MAX:
-            self._sim.setJointTargetVelocity(motor_handle, w)
-        
-        return
+            phi_l = (1 / self.WHEEL_RADIUS) * v - ((self.TRACK / 2) / self.WHEEL_RADIUS) * w
+            phi_r = (1 / self.WHEEL_RADIUS) * v + ((self.TRACK / 2) / self.WHEEL_RADIUS) * w
+            self._sim.setJointTargetVelocity(self._motors["left"], phi_l)
+            self._sim.setJointTargetVelocity(self._motors["right"], phi_r)
 
+        return
 
     def sense(self) -> tuple[list[float], float, float]:
         """Read the LiDAR and the encoders.

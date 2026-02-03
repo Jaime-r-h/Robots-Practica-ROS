@@ -1,6 +1,12 @@
 import rclpy
 from rclpy.lifecycle import LifecycleNode, LifecycleState, TransitionCallbackReturn
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import (
+    QoSProfile,
+    QoSDurabilityPolicy,
+    QoSHistoryPolicy,
+    QoSReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 
 import message_filters
 from amr_msgs.msg import PoseStamped
@@ -64,12 +70,20 @@ class CoppeliaSimNode(LifecycleNode):
             self._localized = False
 
             # Publishers
+            qos_odom = QoSProfile(
+                history=QoSHistoryPolicy.KEEP_LAST,
+                depth=10,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+            )
             # TODO: 2.4. Create the /odometry (Odometry message) and /scan (LaserScan) publishers.
-            self._odometry = self.create_publisher(Odometry, "/odometry", 10)
-            self._scan = self.create_publisher(LaserScan, "/scan", 10)
+            self._odometry = self.create_publisher(Odometry, "/odometry", qos_odom)
+            self._scan = self.create_publisher(LaserScan, "/scan", qos_profile_sensor_data)
 
             # Subscribers
             # TODO: 2.12. Subscribe to /cmd_vel. Connect it with with _next_step_callback.
+            self.cmd_vel_subs = self.create_subscription(
+                TwistStamped, "/cmd_vel", self._next_step_callback, 10
+            )
 
             # TODO: 3.3. Sync the /pose and /cmd_vel subscribers if enable_localization is True.
 
@@ -117,8 +131,8 @@ class CoppeliaSimNode(LifecycleNode):
         self._check_estimated_pose(pose_msg)
 
         # TODO: 2.13. Parse the velocities from the TwistStamped message (i.e., read v and w).
-        v: float = 0.0
-        w: float = 0.0
+        v: float = cmd_vel_msg.twist.linear.x
+        w: float = cmd_vel_msg.twist.angular.z
 
         # Execute simulation step
         self._robot.move(v, w)

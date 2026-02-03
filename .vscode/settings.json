@@ -26,4 +26,5 @@
         "**/log": true
     },
     "ROS2.distro": "humble",
+    "cmake.sourceDirectory": "C:/Users/chope/Uni/Curso3/C2/Robots/DevContainer/sim_ws/src/amr_msgs",
 }

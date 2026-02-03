@@ -1,6 +1,12 @@
 import rclpy
 from rclpy.lifecycle import LifecycleNode, LifecycleState, TransitionCallbackReturn
-from rclpy.qos import QoSProfile, QoSDurabilityPolicy, QoSHistoryPolicy, QoSReliabilityPolicy
+from rclpy.qos import (
+    QoSProfile,
+    QoSDurabilityPolicy,
+    QoSHistoryPolicy,
+    QoSReliabilityPolicy,
+    qos_profile_sensor_data,
+)
 
 import message_filters
 from amr_msgs.msg import PoseStamped
@@ -53,33 +59,28 @@ class WallFollowerNode(LifecycleNode):
 
             # Subscribers
             # TODO: 2.7. Synchronize _compute_commands_callback with /odometry and /scan.
-            self._subscribers : list [message_filters.Subscriber] = []
+            self._subscribers: list[message_filters.Subscriber] = []
+            qos_odom = QoSProfile(
+                history=QoSHistoryPolicy.KEEP_LAST,
+                depth=10,
+                reliability=QoSReliabilityPolicy.RELIABLE,
+            )
             # Append as many topics as needed
             self._subscribers.append(
-                message_filters.Subscriber(
-                    self,
-                    "nav_msgs/msg/Odometry",
-                    "/odometry",
-                    qos_profile = 10
-                )
+                message_filters.Subscriber(self, Odometry, "/odometry", qos_profile=qos_odom)
             )
             self._subscribers.append(
                 message_filters.Subscriber(
-                    self,
-                    "sensor_msgs/msg/LaserScan",
-                    "/scan",
-                    qos_profile = 10
+                    self, LaserScan, "/scan", qos_profile=qos_profile_sensor_data
                 )
             )
             ts = message_filters.ApproximateTimeSynchronizer(
-                self._subscribers,
-                queue_size =10,
-                slop =9
+                self._subscribers, queue_size=10, slop=9
             )
 
             ts.registerCallback(self._compute_commands_callback)
             # TODO: 4.12. Add /pose to the synced subscriptions only if localization is enabled.
-            
+
         except Exception:
             self.get_logger().error(f"{traceback.format_exc()}")
             return TransitionCallbackReturn.ERROR
@@ -114,10 +115,10 @@ class WallFollowerNode(LifecycleNode):
             # TODO: 2.8. Parse the odometry from the Odometry message (i.e., read z_v and z_w).
             z_v: float = odom_msg.twist.twist.linear.x
             z_w: float = odom_msg.twist.twist.angular.z
-            
+
             # TODO: 2.9. Parse LiDAR measurements from the LaserScan message (i.e., read z_scan).
             z_scan: list[float] = scan_msg.ranges
-            
+
             # Execute wall follower
             v, w = self._wall_follower.compute_commands(z_scan, z_v, z_w)
             self.get_logger().info(f"Commands: v = {v:.3f} m/s, w = {w:+.3f} rad/s")
@@ -139,7 +140,7 @@ class WallFollowerNode(LifecycleNode):
         msg.twist.linear.x = v
         msg.twist.angular.z = w
         self._cmd_vel.publish(msg)
-        
+
 
 def main(args=None):
     rclpy.init(args=args)
