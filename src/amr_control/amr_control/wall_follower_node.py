@@ -136,7 +136,7 @@ class WallFollowerNode(LifecycleNode):
         """
         # TODO: 2.11. Complete the function body with your code (i.e., replace the pass statement).
         msg = TwistStamped()
-        msg.header = self.get_clock().now().to_msg()
+        msg.header.stamp = self.get_clock().now().to_msg()
         msg.twist.linear.x = v
         msg.twist.angular.z = w
         self._cmd_vel.publish(msg)
