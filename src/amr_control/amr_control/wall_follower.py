@@ -15,7 +15,7 @@ class WallFollower:
     """Class to safely explore an environment (without crashing) when the pose is unknown."""
 
     # Robot limits
-    LINEAR_SPEED_MAX = 0.16  # Maximum linear velocity in the abscence of angular velocity [m/s]
+    LINEAR_SPEED_MAX = 0.1  # Maximum linear velocity in the abscence of angular velocity [m/s]
     SENSOR_RANGE_MIN = 0.16  # Minimum LiDAR sensor range [m]
     SENSOR_RANGE_MAX = 8.0  # Maximum LiDAR sensor range [m]
     TRACK = 0.16  # Distance between same axle wheels [m]
@@ -51,7 +51,7 @@ class WallFollower:
         self.turn_dir = 0
         self.prev_error = 0.0
         self.int_error = 0.0
-        self.is_reference_wall_right = True
+        self.is_reference_wall_right = False
 
     def compute_commands(self, z_scan: list[float], z_v: float, z_w: float) -> tuple[float, float]:
         """Wall following exploration algorithm.
