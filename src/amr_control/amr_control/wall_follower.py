@@ -33,7 +33,9 @@ class WallFollower:
         front = zscan[0]
         left = zscan[60]
         right = zscan[180]
-        return front, left, right
+        front_left = zscan[35]
+        front_right = zscan[205]
+        return front, left, right, front_left, front_right
 
     def __init__(self, dt: float, logger=None, simulation: bool = False) -> None:
         """Wall following class initializer.
@@ -68,16 +70,21 @@ class WallFollower:
 
         """
         # TODO: 2.14. Complete the function body with your code (i.e., compute v and w).
-        front, left, right = self.get_front_left_right(z_scan)
+        front, left, right, front_left, front_right = self.get_front_left_right(z_scan)
 
         v = 0.0
         w = 0.0
 
         if self.state == State.FORWARD:
-            if front < self.STOP_DIST:
+            if (
+                front < self.STOP_DIST
+                or front_right < (self.STOP_DIST / 2)
+                or front_left < (self.STOP_DIST / 2)
+            ):
                 self.state = State.CHOOSE_TURN
                 v = 0.0
                 w = 0.0
+                self.int_error = 0.0
                 self.prev_error = 0.0
 
             else:
