@@ -80,12 +80,20 @@ class CoppeliaSimNode(LifecycleNode):
             self._scan = self.create_publisher(LaserScan, "/scan", qos_profile_sensor_data)
 
             # Subscribers
-            # TODO: 2.12. Subscribe to /cmd_vel. Connect it with with _next_step_callback.
-            self.cmd_vel_subs = self.create_subscription(
-                TwistStamped, "/cmd_vel", self._next_step_callback, 10
-            )
 
             # TODO: 3.3. Sync the /pose and /cmd_vel subscribers if enable_localization is True.
+            if enable_localization:
+                pose_subs = message_filters.Subscriber(self, PoseStamped, "/pose")
+                cmd_vel_subs = message_filters.Subscriber(self, TwistStamped, "/cmd_vel")
+                ts = message_filters.ApproximateTimeSynchronizer(
+                    [pose_subs, cmd_vel_subs], queue_size=10, slop=0.1
+                )
+                ts.registerCallback(self._next_step_callback)
+            else:
+                # TODO: 2.12. Subscribe to /cmd_vel. Connect it with with _next_step_callback.
+                self.cmd_vel_subs = self.create_subscription(
+                    TwistStamped, "/cmd_vel", self._next_step_callback, 10
+                )
 
         except Exception:
             self.get_logger().error(f"{traceback.format_exc()}")
