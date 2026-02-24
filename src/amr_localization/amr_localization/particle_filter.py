@@ -123,7 +123,23 @@ class ParticleFilter:
 
         """
         # TODO: 3.9. Complete the function body with your code (i.e., replace the pass statement).
-        pass
+        rng = np.random.default_rng()
+
+        N = self._particle_count
+
+        weights = np.array([self._measurement_probability(measurements, particle) for particle in self._particles])
+        weights_sum = np.sum(weights)
+        weights_norm = weights / weights_sum
+
+        cdf = np.cumsum(weights_norm)
+        cdf[-1] = 1.0 
+
+        u0 = rng.random() / N
+        u = u0 + np.arange(N) / N
+        idx = np.digitize(u, cdf, right=False)
+
+        self._particles = self._particles[idx]
+
         
     def plot(self, axes, orientation: bool = True):
         """Draws particles.
