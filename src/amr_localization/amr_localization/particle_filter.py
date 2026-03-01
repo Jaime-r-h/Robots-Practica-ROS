@@ -86,9 +86,61 @@ class ParticleFilter:
 
         """
         # TODO: 3.10. Complete the missing function body with your code.
+        print("ejecuto compute_pose")
         localized: bool = False
         pose: tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
-        
+
+        # Construir espacio ampliado (x, y, sinθ, cosθ)
+        X = []
+        for p in self._particles:
+            x, y, theta = p
+            X.append([x, y, math.sin(theta), math.cos(theta)])
+
+        X = np.array(X)
+
+        # DBSCAN
+        clustering = DBSCAN(eps=0.3, min_samples=10).fit(X)
+        labels = clustering.labels_
+
+        # Obtener clusters válidos (sin ruido -1)
+        unique_labels = set(labels)
+        unique_labels.discard(-1)
+
+        n_clusters = len(unique_labels)
+
+        if n_clusters == 0:
+            return localized, pose
+
+        # Reducir partículas progresivamente
+        if n_clusters > 1:
+            reduction_factor = 0.5
+            new_count = max(100, int(self._particle_count * reduction_factor))
+            idx = np.random.choice(len(self._particles), new_count, replace=False)
+            self._particles = self._particles[idx]
+            self._particle_count = new_count
+            return localized, pose
+
+        # Si solo queda un cluster → estimar pose
+        cluster_label = list(unique_labels)[0]
+        cluster_points = X[labels == cluster_label]
+
+        # Centroide
+        mean_x = np.mean(cluster_points[:, 0])
+        mean_y = np.mean(cluster_points[:, 1])
+        mean_sin = np.mean(cluster_points[:, 2])
+        mean_cos = np.mean(cluster_points[:, 3])
+
+        theta_est = math.atan2(mean_sin, mean_cos)
+
+        pose = (mean_x, mean_y, theta_est)
+        localized = True
+
+        # Reducir partículas para tracking
+        if self._particle_count > 50:
+            idx = np.random.choice(len(self._particles), 50, replace=False)
+            self._particles = self._particles[idx]
+            self._particle_count = 50
+
         return localized, pose
 
     def move(self, v: float, w: float) -> None:
@@ -108,8 +160,11 @@ class ParticleFilter:
             y_fin = y_ini +  v * math.sin(theta) * self._dt + random.gauss(0, self._sigma_v)
             theta += w * self._dt + random.gauss(0, self._sigma_w)
 
-            if not self._map.contains((x_fin, y_fin)):
-                x_fin, y_fin = self._map.check_collision((x_ini, y_ini), (x_fin, y_fin))[0]
+            # if not self._map.contains((x_fin, y_fin)):
+            intersection, _ = self._map.check_collision([(x_ini, y_ini), (x_fin, y_fin)], compute_distance=False)
+
+            if intersection:
+                x_fin, y_fin = intersection
             
             theta = theta % (2 * math.pi)
 
@@ -277,7 +332,7 @@ class ParticleFilter:
         rays = self._lidar_rays(pose, range(0, 240, 240//16))
         for ray in rays:
             start, end = ray
-            _, distance = self._map.check_collision(start, end)
+            _, distance = self._map.check_collision([start, end], compute_distance=True)
             z_hat.append(distance)
 
         return z_hat
@@ -351,15 +406,18 @@ class ParticleFilter:
         """
         probability = 1.0
 
+        indices = range(0, 240, 240 // 16)
+
         # TODO: 3.8. Complete the missing function body with your code.
         z_hat = self._sense(particle)
-        for i, z in enumerate(measurements):
+        for j, i in enumerate(indices):
+            z = measurements[i]
             if math.isnan(z):
                 continue
-            if math.isnan(z_hat[i]):
-                # probability *= self._gaussian(0.0, self._sensor_noise_sigma, self._sensor_range_max - z)
+            if math.isnan(z_hat[j]):
+                # probability *= self._gaussian(0.0, self._sigma_z, self._sensor_range_max - z)
                 continue
             else:
-                probability *= self._gaussian(z_hat[i], self._sensor_noise_sigma, z)
+                probability *= self._gaussian(z_hat[j], self._sigma_z, z)
 
         return probability
