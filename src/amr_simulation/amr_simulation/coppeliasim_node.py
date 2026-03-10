@@ -86,7 +86,7 @@ class CoppeliaSimNode(LifecycleNode):
                 pose_subs = message_filters.Subscriber(self, PoseStamped, "/pose")
                 cmd_vel_subs = message_filters.Subscriber(self, TwistStamped, "/cmd_vel")
                 ts = message_filters.ApproximateTimeSynchronizer(
-                    [pose_subs, cmd_vel_subs], queue_size=10, slop=0.1
+                    [cmd_vel_subs, pose_subs], queue_size=10, slop=0.1
                 )
                 ts.registerCallback(self._next_step_callback)
             else:
@@ -167,6 +167,9 @@ class CoppeliaSimNode(LifecycleNode):
             pose_msg: Message containing the estimated robot pose.
 
         """
+        if not pose_msg.localized or pose_msg.pose is None:
+            return
+        
         self._localized = pose_msg.localized
 
         if self._localized:
@@ -176,6 +179,9 @@ class CoppeliaSimNode(LifecycleNode):
             quat_x = pose_msg.pose.orientation.x
             quat_y = pose_msg.pose.orientation.y
             quat_z = pose_msg.pose.orientation.z
+
+            if x_h is None or y_h is None:
+                return
 
             _, _, th_h = quat2euler((quat_w, quat_x, quat_y, quat_z))
             th_h %= 2 * math.pi
@@ -188,23 +194,23 @@ class CoppeliaSimNode(LifecycleNode):
             th %= 2 * math.pi
             th_deg = math.degrees(th)
 
-            self.get_logger().warn(
-                f"Localized at x = {x_h:.2f} m, y = {y_h:.2f} m, "
-                f"th = {th_h:.2f} rad ({th_h_deg:.1f}º) | "
-                f"Real pose: x = {x:.2f} m, y = {y:.2f} m, th = {th:.2f} rad ({th_deg:.1f}º) | "
-                f"Error{' (OK)' if within_tolerance else ''}: "
-                f"{position_error:.3f} m, {angle_error:.1f}º",
-                once=True,  # Log only the first time this function is hit
-            )
+            # self.get_logger().warn(
+            #     f"Localized at x = {x_h:.2f} m, y = {y_h:.2f} m, "
+            #     f"th = {th_h:.2f} rad ({th_h_deg:.1f}º) | "
+            #     f"Real pose: x = {x:.2f} m, y = {y:.2f} m, th = {th:.2f} rad ({th_deg:.1f}º) | "
+            #     f"Error{' (OK)' if within_tolerance else ''}: "
+            #     f"{position_error:.3f} m, {angle_error:.1f}º",
+            #     once=True,  # Log only the first time this function is hit
+            # )
 
-            self.get_logger().info(
-                f"Estimated: x = {x_h:.2f} m, y = {y_h:.2f} m, "
-                f"th = {th_h:.2f} rad ({th_h_deg:.1f}º) | "
-                f"Real pose: x = {x:.2f} m, y = {y:.2f} m, th = {th:.2f} rad ({th_deg:.1f}º) | "
-                f"Error{' (OK)' if within_tolerance else ''}: "
-                f"{position_error:.3f} m, {angle_error:.1f}º",
-                skip_first=True,  # Log all but the first time this function is hit
-            )
+            # self.get_logger().info(
+            #     f"Estimated: x = {x_h:.2f} m, y = {y_h:.2f} m, "
+            #     f"th = {th_h:.2f} rad ({th_h_deg:.1f}º) | "
+            #     f"Real pose: x = {x:.2f} m, y = {y:.2f} m, th = {th:.2f} rad ({th_deg:.1f}º) | "
+            #     f"Error{' (OK)' if within_tolerance else ''}: "
+            #     f"{position_error:.3f} m, {angle_error:.1f}º",
+            #     skip_first=True,  # Log all but the first time this function is hit
+            # )
 
     def _check_goal(self) -> bool:
         """Checks whether the robot is localized and has reached the goal within tolerance or not.

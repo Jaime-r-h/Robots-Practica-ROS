@@ -1,4 +1,4 @@
-fimport rclpy
+import rclpy
 from rclpy.lifecycle import LifecycleNode, LifecycleState, TransitionCallbackReturn
 from rclpy.qos import (
     QoSProfile,

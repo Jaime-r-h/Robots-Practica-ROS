@@ -183,8 +183,15 @@ class ParticleFilter:
         N = self._particle_count
 
         weights = np.array([self._measurement_probability(measurements, particle) for particle in self._particles])
+
         weights_sum = np.sum(weights)
+
         weights_norm = weights / weights_sum
+
+        # if weights_sum == 0 or np.isnan(weights_sum):
+        #     weights_norm = np.ones(N) / N
+        # else:
+        #     weights_norm = weights / weights_sum
 
         cdf = np.cumsum(weights_norm)
         cdf[-1] = 1.0 

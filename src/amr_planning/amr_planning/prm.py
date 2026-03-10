@@ -87,9 +87,57 @@ class PRM:
         ancestors: dict[tuple[float, float], tuple[float, float]] = {}  # {(x, y: (x_prev, y_prev)}
 
         # TODO: 4.3. Complete the function body (i.e., replace the code below).
-        path: list[tuple[float, float]] = []
 
-        return path
+        nodes = list(self._graph.keys())
+ 
+        start_node = min(nodes, key=lambda n: np.hypot(n[0]-start[0], n[1]-start[1]))
+    
+        goal_node = min(nodes, key=lambda n: np.hypot(n[0]-goal[0], n[1]-goal[1]))
+    
+        open_list = {}
+        closed_set = set()
+
+        g_start = np.hypot(start_node[0]-start[0], start_node[1]-start[1])
+        h_start = np.hypot(goal_node[0]-start_node[0], goal_node[1]-start_node[1])
+    
+        open_list[start_node] = (g_start + h_start, g_start)
+
+        ancestors[start_node] = start
+    
+        while open_list:
+    
+            node = min(open_list, key=lambda k: open_list.get(k)[0])
+            f, g = open_list[node]
+    
+            del open_list[node]
+    
+            if node == goal_node:
+                ancestors[goal] = node
+                return self._reconstruct_path(start, goal, ancestors)
+    
+            closed_set.add(node)
+    
+            for neighbor in self._graph[node]:
+    
+                if neighbor in closed_set:
+                    continue
+    
+                g_new = g + np.hypot(neighbor[0]-node[0], neighbor[1]-node[1])
+                h = np.hypot(goal_node[0]-neighbor[0], goal_node[1]-neighbor[1])
+                f_new = g_new + h
+    
+                if neighbor not in open_list:
+                    open_list[neighbor] = (f_new, g_new)
+                    ancestors[neighbor] = node
+    
+                else:
+                    _, g_existing = open_list[neighbor]
+    
+                    if g_new < g_existing:
+                        open_list[neighbor] = (f_new, g_new)
+                        ancestors[neighbor] = node
+    
+        raise RuntimeError("No path could be found.")
         
     @staticmethod
     def smooth_path(
@@ -115,7 +163,44 @@ class PRM:
         """
         # TODO: 4.5. Complete the function body (i.e., load smoothed_path).
         smoothed_path: list[tuple[float, float]] = []
-        
+
+        extended_path: list[tuple[float, float]] = []
+
+        for i in range(len(path) - 1):
+            p0 = path[i]
+            p1 = path[i + 1]
+    
+            extended_path.append(p0)
+    
+            for j in range(1, additional_smoothing_points + 1):
+                t = j / (additional_smoothing_points + 1)
+                x = p0[0] + t * (p1[0] - p0[0])
+                y = p0[1] + t * (p1[1] - p0[1])
+                extended_path.append((x, y))
+    
+        extended_path.append(path[-1])
+    
+        original = [list(point) for point in extended_path]
+        smoothed = [list(point) for point in extended_path]
+    
+        change = tolerance
+    
+        while change >= tolerance:
+            change = 0.0
+    
+            for i in range(1, len(smoothed) - 1):
+                for dim in range(2):
+                    old_value = smoothed[i][dim]
+    
+                    smoothed[i][dim] += (
+                        data_weight * (original[i][dim] - smoothed[i][dim])
+                        + smooth_weight * (smoothed[i - 1][dim] + smoothed[i + 1][dim] - 2.0 * smoothed[i][dim])
+                    )
+    
+                    change += abs(old_value - smoothed[i][dim])
+    
+        smoothed_path = [tuple(point) for point in smoothed]
+    
         return smoothed_path
 
     def plot(
@@ -238,7 +323,21 @@ class PRM:
 
         """
         # TODO: 4.2. Complete the missing function body with your code.
-        
+        nodes = list(graph.keys())
+ 
+        for i, node_a in enumerate(nodes):
+            for node_b in nodes[i + 1:]:
+    
+                distance = np.hypot(node_a[0] - node_b[0], node_a[1] - node_b[1])
+    
+                if distance <= connection_distance:
+    
+                    segment = [node_a, node_b]
+    
+                    if not self._map.crosses(segment):
+                        graph[node_a].append(node_b)
+                        graph[node_b].append(node_a)
+
         return graph
 
     def _create_graph(
@@ -286,8 +385,7 @@ class PRM:
         # TODO: 4.1. Complete the missing function body with your code.
 
         if use_grid:
-            xmin, xmax = self._map.bounds[0]
-            ymin, ymax = self._map.bounds[1]
+            xmin, ymin, xmax, ymax  = self._map.bounds()
 
             x = xmin
             while x <= xmax:
@@ -314,8 +412,7 @@ class PRM:
                 if self._map.contains(node):
                     graph[node] = []
 
-                
-                return graph
+        return graph
 
     def _reconstruct_path(
         self,
@@ -337,9 +434,16 @@ class PRM:
         path: list[tuple[float, float]] = []
 
         # TODO: 4.4. Complete the missing function body with your code.
-        
+        current = goal
+        path.append(current)
+    
+        while current != start:
+            current = ancestors[current]
+            path.append(current)
+    
+        path.reverse()
+    
         return path
-
 
 if __name__ == "__main__":
     map_name = "project"

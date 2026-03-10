@@ -157,6 +157,5 @@ def main(args=None):
     lifecycle_manager_node.destroy_node()
     rclpy.try_shutdown()
 
-
 if __name__ == "__main__":
     main()
