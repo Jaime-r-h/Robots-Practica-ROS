@@ -139,7 +139,7 @@ class ParticleFilter:
         if self._particle_count > 50:
             idx = np.random.choice(len(self._particles), 50, replace=False)
             self._particles = self._particles[idx]
-            self._particle_count = 50
+            self._particle_count = 50 
 
         return localized, pose
 
