@@ -113,11 +113,11 @@ class ParticleFilter:
 
         # Reducir partículas progresivamente
         if n_clusters > 1:
-            reduction_factor = 0.5
-            new_count = max(100, int(self._particle_count * reduction_factor))
-            idx = np.random.choice(len(self._particles), new_count, replace=False)
-            self._particles = self._particles[idx]
-            self._particle_count = new_count
+            # reduction_factor = 0.5
+            # new_count = max(100, int(self._particle_count * reduction_factor))
+            # idx = np.random.choice(len(self._particles), new_count, replace=False)
+            # self._particles = self._particles[idx]
+            # self._particle_count = new_count
             return localized, pose
 
         # Si solo queda un cluster → estimar pose
@@ -178,30 +178,75 @@ class ParticleFilter:
 
         """
         # TODO: 3.9. Complete the function body with your code (i.e., replace the pass statement).
+        # SISTEMÁTICO:
         rng = np.random.default_rng()
-
         N = self._particle_count
 
-        weights = np.array([self._measurement_probability(measurements, particle) for particle in self._particles])
+        log_weights = np.array([
+            self._measurement_probability(measurements, p)
+            for p in self._particles
+        ])
+
+        log_weights = np.nan_to_num(log_weights, neginf=-1e9, posinf=0)
+
+        max_log_w = np.max(log_weights)
+        weights = np.exp(log_weights - max_log_w)
 
         weights_sum = np.sum(weights)
 
-        weights_norm = weights / weights_sum
+        if weights_sum <= 0 or np.isnan(weights_sum):
+            weights = np.ones(N) / N
+        else:
+            weights = weights / weights_sum
+
+        positions = (rng.random() + np.arange(N)) / N
+        cumsum = np.cumsum(weights)
+
+        new_particles = []
+        i = 0
+        j = 0
+
+        while i < N:
+            if positions[i] < cumsum[j]:
+                new_particles.append(self._particles[j])
+                i += 1
+            else:
+                j += 1
+
+        self._particles = np.array(new_particles)
+
+        # MULTINOMIAL:
+        # rng = np.random.default_rng()
+        # N = self._particle_count
+
+        # log_weights = np.array([
+        #     self._measurement_probability(measurements, particle)
+        #     for particle in self._particles
+        # ])
+
+        # max_log_w = np.max(log_weights)
+
+        # weights = np.exp(log_weights - max_log_w)
+
+        # weights_sum = np.sum(weights)
 
         # if weights_sum == 0 or np.isnan(weights_sum):
         #     weights_norm = np.ones(N) / N
         # else:
         #     weights_norm = weights / weights_sum
 
-        cdf = np.cumsum(weights_norm)
-        cdf[-1] = 1.0 
+        # cdf = np.cumsum(weights_norm)
+        # cdf[-1] = 1.0
 
-        u0 = rng.random() / N
-        u = u0 + np.arange(N) / N
-        idx = np.digitize(u, cdf, right=False)
+        # u0 = rng.random() / N
+        # u = u0 + np.arange(N) / N
 
-        self._particles = self._particles[idx]
+        # print(cdf, flush=True)
+        # print(u, flush=True)
 
+        # idx = np.digitize(u, cdf, right=False)
+
+        # self._particles = self._particles[idx]
         
     def plot(self, axes, orientation: bool = True):
         """Draws particles.
@@ -411,20 +456,45 @@ class ParticleFilter:
             float: Probability.
 
         """
-        probability = 1.0
-
+        log_probability = 0.0
         indices = range(0, 240, 240 // 16)
-
-        # TODO: 3.8. Complete the missing function body with your code.
         z_hat = self._sense(particle)
+
         for j, i in enumerate(indices):
             z = measurements[i]
+
             if math.isnan(z):
                 continue
-            if math.isnan(z_hat[j]):
-                # probability *= self._gaussian(0.0, self._sigma_z, self._sensor_range_max - z)
-                continue
-            else:
-                probability *= self._gaussian(z_hat[j], self._sigma_z, z)
 
-        return probability
+            if math.isnan(z_hat[j]):
+                continue
+
+            g = self._gaussian(z_hat[j], self._sigma_z, z)
+
+            if g > 0:
+                log_probability += math.log(g)
+
+        return log_probability
+
+        # probability = 1.0
+
+        # indices = range(0, 240, 240 // 16)
+
+        # # TODO: 3.8. Complete the missing function body with your code.
+
+        # z_hat = self._sense(particle)
+
+        # for j, i in enumerate(indices):
+
+        #     z = measurements[i]
+
+        #     if math.isnan(z):
+        #         continue
+
+        #     if math.isnan(z_hat[j]):
+        #         # probability *= self._gaussian(0.0, self._sigma_z, self._sensor_range_max - z)
+        #         continue
+        #     else:
+        #         probability *= self._gaussian(z_hat[j], self._sigma_z, z)
+
+        # return probability

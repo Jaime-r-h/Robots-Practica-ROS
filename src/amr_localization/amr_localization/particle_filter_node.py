@@ -217,10 +217,10 @@ class ParticleFilterNode(LifecycleNode):
             pose_msg.pose.position.y = y_h
             pose_msg.pose.position.z = 0.0
             quat = euler2quat(0.0, 0.0, theta_h)
-            pose_msg.pose.orientation.x = quat[0]
-            pose_msg.pose.orientation.y = quat[1]
-            pose_msg.pose.orientation.z = quat[2]
-            pose_msg.pose.orientation.w = quat[3]
+            pose_msg.pose.orientation.w = quat[0]
+            pose_msg.pose.orientation.x = quat[1]
+            pose_msg.pose.orientation.y = quat[2]
+            pose_msg.pose.orientation.z = quat[3]
 
         self.pose_publish.publish(pose_msg)
         
