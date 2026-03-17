@@ -48,13 +48,13 @@ class PurePursuitNode(LifecycleNode):
             )
 
             # Publishers
-            self._publisher = self.create_publisher(TwistStamped, "cmd_vel", 10)
+            self._publisher = self.create_publisher(TwistStamped, "/cmd_vel", 10)
 
             # Subscribers
             self._subscriber_pose = self.create_subscription(
-                PoseStamped, "pose", self._compute_commands_callback, 10
+                PoseStamped, "/pose", self._compute_commands_callback, 10
             )
-            self._subscriber_path = self.create_subscription(Path, "path", self._path_callback, 10)
+            self._subscriber_path = self.create_subscription(Path, "/path", self._path_callback, 10)
 
         except Exception:
             self.get_logger().error(f"{traceback.format_exc()}")
@@ -108,8 +108,15 @@ class PurePursuitNode(LifecycleNode):
 
         """
         # TODO: 4.8. Complete the function body with your code (i.e., replace the pass statement).
-        pass
-        
+        path = []
+ 
+        for pose_stamped in path_msg.poses:
+            x = pose_stamped.pose.position.x
+            y = pose_stamped.pose.position.y
+            path.append((x, y))
+    
+        self._pure_pursuit.path = path
+
     def _publish_velocity_commands(self, v: float, w: float) -> None:
         """Publishes velocity commands in a geometry_msgs.msg.TwistStamped message.
 

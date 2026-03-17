@@ -22,7 +22,7 @@ class PRM:
         map_path: str,
         obstacle_safety_distance=0.08,
         use_grid: bool = False,
-        node_count: int = 50,
+        node_count: int = 500,
         grid_size=0.1,
         connection_distance: float = 0.15,
         sensor_range_max: float = 8.0,
@@ -104,15 +104,15 @@ class PRM:
 
         ancestors[start_node] = start
     
-        while open_list:
-    
+        while open_list:            
             node = min(open_list, key=lambda k: open_list.get(k)[0])
             f, g = open_list[node]
     
             del open_list[node]
     
             if node == goal_node:
-                ancestors[goal] = node
+                if goal_node != goal:
+                    ancestors[goal] = node
                 return self._reconstruct_path(start, goal, ancestors)
     
             closed_set.add(node)
@@ -343,7 +343,7 @@ class PRM:
     def _create_graph(
         self,
         use_grid: bool = False,
-        node_count: int = 50,
+        node_count: int = 500,
         grid_size=0.1,
         connection_distance: float = 0.15,
     ) -> dict[tuple[float, float], list[tuple[float, float]]]:
@@ -366,7 +366,7 @@ class PRM:
         return graph
 
     def _generate_nodes(
-        self, use_grid: bool = False, node_count: int = 50, grid_size=0.1
+        self, use_grid: bool = False, node_count: int = 500, grid_size=0.1
     ) -> dict[tuple[float, float], list[tuple[float, float]]]:
         """Creates a set of valid nodes to build a roadmap with.
 
@@ -400,8 +400,7 @@ class PRM:
                 x += grid_size
 
         else:
-            xmin, xmax = self._map.bounds[0]
-            ymin, ymax = self._map.bounds[1]
+            xmin, ymin, xmax, ymax  = self._map.bounds()
 
             while len(graph) < node_count:
                 x = random.uniform(xmin, xmax)
@@ -436,13 +435,17 @@ class PRM:
         # TODO: 4.4. Complete the missing function body with your code.
         current = goal
         path.append(current)
+
+        print(ancestors, flush=True)
     
         while current != start:
+            # print(current, flush=True)
             current = ancestors[current]
             path.append(current)
     
         path.reverse()
-    
+        print(path, flush=True)
+        print("acabé", flush=True)
         return path
 
 if __name__ == "__main__":

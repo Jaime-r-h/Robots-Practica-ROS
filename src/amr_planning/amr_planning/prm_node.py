@@ -22,7 +22,7 @@ class PRMNode(LifecycleNode):
         self.declare_parameter("enable_plot", False)
         self.declare_parameter("goal", (0.0, 0.0))
         self.declare_parameter("grid_size", 0.05)
-        self.declare_parameter("node_count", 250)
+        self.declare_parameter("node_count", 1000)
         self.declare_parameter("obstacle_safety_distance", 0.08)
         self.declare_parameter("simulation", False)
         self.declare_parameter("smoothing_additional_points", 3)
@@ -124,10 +124,12 @@ class PRMNode(LifecycleNode):
 
         """
         if pose_msg.localized and not self._localized:
+
             start = (pose_msg.pose.position.x, pose_msg.pose.position.y)
 
             start_time = time.perf_counter()
             path = self._planning.find_path(start, self._goal)
+            print(path, flush=True)
             pathfinding_time = time.perf_counter() - start_time
 
             self.get_logger().info(f"Pathfinding time: {pathfinding_time:1.3f} s")

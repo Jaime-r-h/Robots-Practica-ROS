@@ -86,7 +86,6 @@ class ParticleFilter:
 
         """
         # TODO: 3.10. Complete the missing function body with your code.
-        print("ejecuto compute_pose")
         localized: bool = False
         pose: tuple[float, float, float] = (float("inf"), float("inf"), float("inf"))
 

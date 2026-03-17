@@ -53,7 +53,7 @@ def generate_launch_description():
                 "enable_plot": True,
                 "goal": goal,
                 "grid_size": 0.1,
-                "node_count": 250,
+                "node_count": 1000,
                 "obstacle_safety_distance": 0.12,  # 0.08,
                 "simulation": simulation,
                 "smoothing_additional_points": 3,
